@@ -4,6 +4,8 @@ import { socket } from "@/socket";
 import { useUserStore } from "@/providers/user-store-provider";
 import { redirect } from "next/navigation";
 import clsx from "clsx";
+import { IChatMessageItem } from "@/types";
+import Balloon from "./Balloon";
 
 export default function Room() {
   const { hasHydrated, userId, userName, setUserId } = useUserStore(
@@ -14,7 +16,8 @@ export default function Room() {
   const [transport, setTransport] = React.useState("N/A");
   const [roomId, setRoomId] = React.useState<string>("");
   const [inputValue, setInputValue] = React.useState<string>("");
-  const [messages, setMessages] = React.useState<string[]>([]);
+  const [messages, setMessages] = React.useState<IChatMessageItem[]>([]);
+  console.log("messages", messages);
   const [enableReady, setEnableReady] = React.useState<boolean>(false);
   const [ready, setReady] = React.useState<boolean>(false);
 
@@ -40,9 +43,12 @@ export default function Room() {
     setRoomId(roomId);
     setMessages((prev) => [
       ...prev,
-      `${roomId}번 방에 입장했습니다. 현재 인원: ${roomSize}/2.${
-        roomSize === gameSize ? " 준비완료 버튼을 눌러주세요." : ""
-      }`,
+      {
+        type: "system",
+        message: `${roomId}번 방에 입장했습니다. 현재 인원: ${roomSize}/2.${
+          roomSize === gameSize ? " 준비완료 버튼을 눌러주세요." : ""
+        }`,
+      },
     ]);
     if (roomSize === gameSize) {
       setEnableReady(true);
@@ -56,9 +62,12 @@ export default function Room() {
   ) => {
     setMessages((prev) => [
       ...prev,
-      `${userId}님이 입장하셨습니다. 현재 인원: ${roomSize}/2.${
-        roomSize === gameSize ? " 준비완료 버튼을 눌러주세요." : ""
-      }`,
+      {
+        type: "system",
+        message: `${userId}님이 입장하셨습니다. 현재 인원: ${roomSize}/2.${
+          roomSize === gameSize ? " 준비완료 버튼을 눌러주세요." : ""
+        }`,
+      },
     ]);
     if (roomSize === gameSize) {
       setEnableReady(true);
@@ -74,8 +83,9 @@ export default function Room() {
     }
   };
 
-  const onWelcomeMessage = (msg: string) => {
-    setMessages((prev) => [...prev, msg]);
+  const onChatMessage = (msg: string, id: string) => {
+    const type = id === socket.id ? "my" : "other";
+    setMessages((prev) => [...prev, { type, message: msg }]);
     setTimeout(() => {
       chatWindowRef?.current?.scrollTo({
         top: chatWindowRef.current.scrollHeight,
@@ -91,7 +101,10 @@ export default function Room() {
     console.log("onOtherUserLeave otherUserName", otherUserName);
     setMessages((prev) => [
       ...prev,
-      `${otherUserName}님이 퇴장하셨습니다. 현재 인원: ${roomSize}/2.`,
+      {
+        type: "system",
+        message: `${otherUserName}님이 퇴장하셨습니다. 현재 인원: ${roomSize}/2.`,
+      },
     ]);
     setEnableReady(false);
     setReady(false);
@@ -109,14 +122,14 @@ export default function Room() {
   };
 
   React.useEffect(() => {
-    // if (socket.connected) {
-    //   onConnect();
-    // }
+    if (socket.connected) {
+      onConnect();
+    }
 
     socket.on("connect", onConnect);
     socket.on("roomJoined", onRoomJoined);
     socket.on("welcome", onOtherUserJoin);
-    socket.on("chat message", onWelcomeMessage);
+    socket.on("chat message", onChatMessage);
     socket.on("game start", onGameStart);
     socket.on("leave", onOtherUserLeave);
     socket.on("disconnect", onDisconnect);
@@ -125,7 +138,7 @@ export default function Room() {
       socket.off("connect", onConnect);
       socket.off("roomJoined", onRoomJoined);
       socket.off("welcome", onOtherUserJoin);
-      socket.off("chat message", onWelcomeMessage);
+      socket.off("chat message", onChatMessage);
       socket.off("game start", onGameStart);
       socket.off("leave", onOtherUserLeave);
       socket.off("disconnect", onDisconnect);
@@ -146,13 +159,21 @@ export default function Room() {
   return (
     <div className="flex flex-1">
       <div className="flex flex-1 flex-col">
-        <ul ref={chatWindowRef} className="flex-1 overflow-auto">
+        <ul
+          ref={chatWindowRef}
+          className="flex flex-col flex-1 p-[10px] overflow-auto gap-[10px]"
+        >
           {messages.map((m, _m) => {
-            return <li key={`${roomId}_${m}_${_m}`}>{m}</li>;
+            return (
+              <li key={`${roomId}_${m.type}_${m.message}_${_m}`}>
+                <Balloon {...m} />
+              </li>
+            );
           })}
         </ul>
         <form onSubmit={onChatSend}>
           <button
+            type={"button"}
             disabled={!enableReady || ready}
             onClick={onSetReady}
             className={clsx(
