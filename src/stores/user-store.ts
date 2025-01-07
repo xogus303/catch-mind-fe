@@ -14,8 +14,8 @@ export type UserActions = {
 export type UserStore = UserState & UserActions;
 export const initUserStore = (): UserState => {
   return {
-    userId: "",
-    userName: "",
+    userId: null,
+    userName: null,
     hasHydrated: false,
   };
 };

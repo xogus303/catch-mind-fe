@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import clsx from "clsx";
 import { IChatMessageItem } from "@/types";
 import Balloon from "./Balloon";
+import { koreaNewDate } from "@/utils";
 
 export default function Room() {
   const { hasHydrated, userId, userName, setUserId } = useUserStore(
@@ -17,12 +18,11 @@ export default function Room() {
   const [roomId, setRoomId] = React.useState<string>("");
   const [inputValue, setInputValue] = React.useState<string>("");
   const [messages, setMessages] = React.useState<IChatMessageItem[]>([]);
-  console.log("messages", messages);
   const [enableReady, setEnableReady] = React.useState<boolean>(false);
   const [ready, setReady] = React.useState<boolean>(false);
 
   const onConnect = () => {
-    console.log("socket.id", socket.id);
+    console.log("onConnect socket.id", socket.id, userName);
     setIsConnected(true);
     setTransport(socket.io.engine.transport.name);
 
@@ -30,6 +30,11 @@ export default function Room() {
       setTransport(transport.name);
     });
     socket.emit("joinRandomRoom", userName);
+  };
+
+  const onConnectError = () => {
+    alert("접속에 실패하였습니다.");
+    redirect("/");
   };
 
   const onRoomJoined = (
@@ -48,6 +53,7 @@ export default function Room() {
         message: `${roomId}번 방에 입장했습니다. 현재 인원: ${roomSize}/2.${
           roomSize === gameSize ? " 준비완료 버튼을 눌러주세요." : ""
         }`,
+        time: new Date(),
       },
     ]);
     if (roomSize === gameSize) {
@@ -56,7 +62,7 @@ export default function Room() {
   };
 
   const onOtherUserJoin = (
-    userId: string,
+    userName: string,
     roomSize: number,
     gameSize: number
   ) => {
@@ -64,9 +70,10 @@ export default function Room() {
       ...prev,
       {
         type: "system",
-        message: `${userId}님이 입장하셨습니다. 현재 인원: ${roomSize}/2.${
+        message: `${userName}님이 입장하셨습니다. 현재 인원: ${roomSize}/2.${
           roomSize === gameSize ? " 준비완료 버튼을 눌러주세요." : ""
         }`,
+        time: new Date(),
       },
     ]);
     if (roomSize === gameSize) {
@@ -77,20 +84,44 @@ export default function Room() {
   const onChatSend = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (inputValue.length > 0) {
-      socket.emit("chat message", inputValue);
+      socket.emit("chat message", inputValue, userName);
       setInputValue("");
       chatInputRef?.current?.focus();
     }
   };
 
-  const onChatMessage = (msg: string, id: string) => {
+  const onChatMessage = (msg: string, id: string, name: string) => {
     const type = id === socket.id ? "my" : "other";
-    setMessages((prev) => [...prev, { type, message: msg }]);
-    setTimeout(() => {
-      chatWindowRef?.current?.scrollTo({
-        top: chatWindowRef.current.scrollHeight,
-      });
-    }, 100);
+    setMessages((prev) => {
+      let formatPrev = [...prev];
+      let isSameId = false;
+      if (prev.length > 0 && prev[prev.length - 1].id === id) {
+        isSameId = true;
+        const lastMessageTimeToString = prev[prev.length - 1].time
+          .toISOString()
+          .slice(0, 16);
+        const nowTimeToString = koreaNewDate().toISOString().slice(0, 16);
+        if (lastMessageTimeToString === nowTimeToString) {
+          const lastMsg = {
+            ...formatPrev.splice(formatPrev.length - 1, 1)[0],
+            isLastSameMin: false,
+          };
+          formatPrev = [...formatPrev, lastMsg];
+        }
+      }
+      return [
+        ...formatPrev,
+        {
+          type,
+          id,
+          name,
+          message: msg,
+          time: koreaNewDate(),
+          isSameId,
+          isLastSameMin: true,
+        },
+      ];
+    });
   };
 
   const onGameStart = () => {
@@ -104,6 +135,7 @@ export default function Room() {
       {
         type: "system",
         message: `${otherUserName}님이 퇴장하셨습니다. 현재 인원: ${roomSize}/2.`,
+        time: new Date(),
       },
     ]);
     setEnableReady(false);
@@ -122,11 +154,14 @@ export default function Room() {
   };
 
   React.useEffect(() => {
-    if (socket.connected) {
+    if (socket.connected && hasHydrated && userName !== null) {
       onConnect();
     }
+  }, [hasHydrated]);
 
+  React.useEffect(() => {
     socket.on("connect", onConnect);
+    socket.on("connect_error", onConnectError);
     socket.on("roomJoined", onRoomJoined);
     socket.on("welcome", onOtherUserJoin);
     socket.on("chat message", onChatMessage);
@@ -136,6 +171,7 @@ export default function Room() {
 
     return () => {
       socket.off("connect", onConnect);
+      socket.off("connect_error", onConnectError);
       socket.off("roomJoined", onRoomJoined);
       socket.off("welcome", onOtherUserJoin);
       socket.off("chat message", onChatMessage);
@@ -148,6 +184,16 @@ export default function Room() {
   const chatWindowRef = React.useRef<HTMLUListElement>(null);
   const chatInputRef = React.useRef<HTMLInputElement>(null);
 
+  React.useEffect(() => {
+    if (chatWindowRef.current) {
+      setTimeout(() => {
+        chatWindowRef?.current?.scrollTo({
+          top: chatWindowRef.current.scrollHeight,
+        });
+      }, 100);
+    }
+  }, [chatWindowRef, messages]);
+
   if (!hasHydrated) {
     return <p>Loading...</p>;
   } else {
@@ -157,15 +203,20 @@ export default function Room() {
   }
 
   return (
-    <div className="flex flex-1">
-      <div className="flex flex-1 flex-col">
+    <div className="flex flex-1 w-full">
+      <div className="flex flex-1 flex-col w-full">
         <ul
           ref={chatWindowRef}
-          className="flex flex-col flex-1 p-[10px] overflow-auto gap-[10px]"
+          className="flex flex-col flex-1 p-[10px] overflow-y-auto gap-[10px]"
         >
           {messages.map((m, _m) => {
             return (
-              <li key={`${roomId}_${m.type}_${m.message}_${_m}`}>
+              <li
+                key={`${roomId}_${m.type}_${m.message}_${_m}`}
+                className={clsx(
+                  `w-full ${m.type === "other" && "flex justify-end"}`
+                )}
+              >
                 <Balloon {...m} />
               </li>
             );
