@@ -5,6 +5,11 @@ export interface IChatMessageItem {
   name?: string;
   message: string;
   time: Date;
-  isSameId?: boolean;
+  isFirstSameMin?: boolean;
   isLastSameMin?: boolean;
+}
+export interface IUserListItem {
+  id: string;
+  name: string;
+  answer: string;
 }
