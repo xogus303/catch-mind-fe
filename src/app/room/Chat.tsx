@@ -15,11 +15,9 @@ const Chat = () => {
   const [roomId, setRoomId] = React.useState<string>("");
   const [inputValue, setInputValue] = React.useState<string>("");
   const [messages, setMessages] = React.useState<IChatMessageItem[]>([]);
-  const [enableReady, setEnableReady] = React.useState<boolean>(false);
-  const [ready, setReady] = React.useState<boolean>(false);
 
   const onConnect = () => {
-    console.log("onConnect socket.id", socket.id, userName);
+    // console.log("onConnect socket.id", socket.id, userName);
     setIsConnected(true);
     setTransport(socket.io.engine.transport.name);
 
@@ -40,7 +38,7 @@ const Chat = () => {
     roomSize: number,
     gameSize: number
   ) => {
-    console.log("onRoomJoined()");
+    // console.log("onRoomJoined()");
     setUserId(userId);
     setRoomId(roomId);
     setMessages((prev) => [
@@ -53,9 +51,6 @@ const Chat = () => {
         time: new Date(),
       },
     ]);
-    if (roomSize === gameSize) {
-      setEnableReady(true);
-    }
   };
 
   const onOtherUserJoin = (
@@ -73,9 +68,6 @@ const Chat = () => {
         time: new Date(),
       },
     ]);
-    if (roomSize === gameSize) {
-      setEnableReady(true);
-    }
   };
 
   const onChatSend = (e: React.FormEvent<HTMLFormElement>) => {
@@ -128,7 +120,7 @@ const Chat = () => {
   };
 
   const onOtherUserLeave = (otherUserName: string, roomSize: number) => {
-    console.log("onOtherUserLeave otherUserName", otherUserName);
+    // console.log("onOtherUserLeave otherUserName", otherUserName);
     setMessages((prev) => [
       ...prev,
       {
@@ -137,14 +129,6 @@ const Chat = () => {
         time: new Date(),
       },
     ]);
-    setEnableReady(false);
-    setReady(false);
-  };
-
-  const onSetReady = (e: React.MouseEvent<HTMLButtonElement>) => {
-    e.preventDefault();
-    setReady(true);
-    socket.emit("ready", roomId);
   };
 
   const onDisconnect = () => {
@@ -220,16 +204,11 @@ const Chat = () => {
           onChange={(e) => setInputValue(e.target.value)}
           className="flex flex-1 rounded-[4px] p-[5px]"
         />
-        <button type="submit">Send</button>
         <button
-          type={"button"}
-          disabled={!enableReady || ready}
-          onClick={onSetReady}
-          className={clsx(
-            `${!enableReady ? "text-[grey]" : !ready ? "text-[red]" : ""}`
-          )}
+          type="submit"
+          className="px-[10px] text-[#ccc] bg-slate-600 rounded-[4px]"
         >
-          ready
+          전송
         </button>
       </form>
     </div>

@@ -51,7 +51,11 @@ export default function Home() {
 
         <div className="flex gap-4 items-center ">
           <form onSubmit={clickEnterBtn} className="flex flex-row">
-            <input ref={inputRef} className="border-b-2 outline-none" />
+            <input
+              ref={inputRef}
+              maxLength={10}
+              className="border-b-2 outline-none"
+            />
             <button
               className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
               type="submit"
