@@ -115,10 +115,6 @@ const Chat = () => {
     });
   };
 
-  const onGameStart = () => {
-    alert("game start !!");
-  };
-
   const onOtherUserLeave = (otherUserName: string, roomSize: number) => {
     // console.log("onOtherUserLeave otherUserName", otherUserName);
     setMessages((prev) => [
@@ -148,7 +144,6 @@ const Chat = () => {
     socket.on("roomJoined", onRoomJoined);
     socket.on("welcome", onOtherUserJoin);
     socket.on("chat message", onChatMessage);
-    socket.on("game start", onGameStart);
     socket.on("leave", onOtherUserLeave);
     socket.on("disconnect", onDisconnect);
 
@@ -158,7 +153,6 @@ const Chat = () => {
       socket.off("roomJoined", onRoomJoined);
       socket.off("welcome", onOtherUserJoin);
       socket.off("chat message", onChatMessage);
-      socket.off("game start", onGameStart);
       socket.off("leave", onOtherUserLeave);
       socket.off("disconnect", onDisconnect);
     };
@@ -206,7 +200,7 @@ const Chat = () => {
         />
         <button
           type="submit"
-          className="px-[10px] text-[#ccc] bg-slate-600 rounded-[4px]"
+          className="px-[10px] text-[#ccc] bg-slate-600 hover:bg-slate-800 rounded-[4px]"
         >
           전송
         </button>

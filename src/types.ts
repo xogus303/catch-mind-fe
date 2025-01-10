@@ -13,3 +13,4 @@ export interface IUserListItem {
   name: string;
   answer: string;
 }
+export type TUserType = "master" | "taker";
