@@ -1,13 +1,17 @@
+import { useUserStore } from "@/providers/user-store-provider";
 import { socket } from "@/socket";
-import { TUserType } from "@/types";
 import clsx from "clsx";
 import React from "react";
 
-const Controller = () => {
-  const [roomId, setRoomId] = React.useState<string>("");
+interface IControllerProps {
+  roomId: string;
+}
+
+const Controller = (props: IControllerProps) => {
+  const { userType } = useUserStore((state) => state);
+
   const [enableReady, setEnableReady] = React.useState<boolean>(false);
   const [ready, setReady] = React.useState<boolean>(false);
-  const [userType, setUserType] = React.useState<TUserType | null>(null);
   const [masterName, setMasterName] = React.useState<string | null>(null);
   const [started, setStarted] = React.useState<boolean>(false);
 
@@ -20,7 +24,6 @@ const Controller = () => {
     console.log("onRoomJoined() --------");
     console.log("roomSize", roomSize);
     console.log("gameSize", gameSize);
-    setRoomId(roomId);
     if (roomSize === gameSize) {
       setEnableReady(true);
     }
@@ -51,12 +54,7 @@ const Controller = () => {
   const onSetReady = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
     setReady(true);
-    socket.emit("ready", roomId);
-  };
-
-  const selectUserType = (type: TUserType) => {
-    setUserType(type);
-    socket.emit("select userType", roomId, type);
+    socket.emit("ready", props.roomId);
   };
 
   const updateMasterUser = (isMaster: string | null) => {
@@ -88,37 +86,13 @@ const Controller = () => {
     <div className="flex flex-col p-[10px] w-[200px] justify-end ">
       {!started ? (
         <div className="flex  flex-col gap-[10px]">
-          <div className="flex gap-[10px]">
-            <button
-              disabled={masterName !== null || ready}
-              onClick={() => selectUserType("master")}
-              className={clsx(
-                `flex-1 h-[30px] text-[12px] text-[#374151] border-[1px] border-gray-200 rounded-[4px] hover:bg-gray-400 ${
-                  userType === "master" && "bg-gray-400 text-[#ccc]"
-                }`
-              )}
-            >
-              {masterName === null ? "문제낼래요" : masterName}
-            </button>
-            <button
-              disabled={ready}
-              onClick={() => selectUserType("taker")}
-              className={clsx(
-                `flex-1 h-[30px] text-[12px] text-[#374151] border-[1px] border-gray-200 rounded-[4px] hover:bg-gray-400 ${
-                  userType === "taker" && "bg-gray-400 text-[#ccc]"
-                }`
-              )}
-            >
-              정답맞출래요
-            </button>
-          </div>
           <button
             type={"button"}
-            disabled={!enableReady || (userType !== null && ready)}
+            disabled={!enableReady || ready}
             onClick={onSetReady}
             className={clsx(
               `py-[10px] px-[20px] rounded-full ${
-                !enableReady || userType === null
+                !enableReady
                   ? "text-[#ccc] bg-neutral-700"
                   : !ready
                   ? "text-[white] bg-red-400 hover:bg-red-600"

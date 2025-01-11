@@ -1,27 +1,44 @@
 "use client";
 
 import { useUserStore } from "@/providers/user-store-provider";
+import { TUserType } from "@/types";
+import clsx from "clsx";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import React from "react";
 
 export default function Home() {
   const router = useRouter();
-  const { setUserId, setUserName } = useUserStore((state) => state);
+  const { setUserId, setUserName, setUserType } = useUserStore(
+    (state) => state
+  );
+
+  const [selectedUserType, setSelectedUserType] =
+    React.useState<TUserType | null>(null);
 
   const inputRef = React.useRef<HTMLInputElement>(null);
 
   React.useEffect(() => {
     setUserId("");
     setUserName("");
+    setUserType(null);
   }, []);
+
+  const selectUserType = (type: TUserType) => {
+    setSelectedUserType(type);
+    inputRef?.current?.focus();
+  };
 
   const clickEnterBtn = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const value = inputRef?.current?.value;
-    console.log("value", value);
-    if (value) {
+    if (selectedUserType === null) {
+      return alert("타입을 선택해 주세요.");
+    } else if (!value) {
+      return alert("이름을 입력해 주세요.");
+    } else {
       setUserName(value);
+      setUserType(selectedUserType);
       router.push("/room");
       e.target.reset();
     }
@@ -48,7 +65,32 @@ export default function Home() {
           </li>
           <li>Save and see your changes instantly.</li>
         </ol>
-
+        <div className="flex gap-[10px]">
+          <button
+            onClick={() => selectUserType("master")}
+            className={clsx(
+              `${
+                selectedUserType === "master"
+                  ? "text-[#ccc] bg-slate-700"
+                  : "hover:bg-slate-500 hover:text-[#ccc]"
+              } px-[10px] py-[5px] border-[1px] border-slate-500 rounded-[4px]`
+            )}
+          >
+            문제낼래요
+          </button>
+          <button
+            onClick={() => selectUserType("solver")}
+            className={clsx(
+              `${
+                selectedUserType === "solver"
+                  ? "text-[#ccc] bg-slate-700"
+                  : "hover:bg-slate-500 hover:text-[#ccc]"
+              } px-[10px] py-[5px] border-[1px] border-slate-700 rounded-[4px]`
+            )}
+          >
+            정답맞출래요
+          </button>
+        </div>
         <div className="flex gap-4 items-center ">
           <form onSubmit={clickEnterBtn} className="flex flex-row">
             <input

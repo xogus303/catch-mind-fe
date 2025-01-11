@@ -11,6 +11,7 @@ export interface IChatMessageItem {
 export interface IUserListItem {
   id: string;
   name: string;
+  type: string;
   answer: string;
 }
-export type TUserType = "master" | "taker";
+export type TUserType = "master" | "solver";

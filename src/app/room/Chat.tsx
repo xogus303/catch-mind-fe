@@ -1,36 +1,18 @@
 import { IChatMessageItem } from "@/types";
 import React from "react";
-import { redirect } from "next/navigation";
 import { socket } from "@/socket";
 import { useUserStore } from "@/providers/user-store-provider";
 import { koreaNewDate } from "@/utils";
 import Balloon from "./Balloon";
 import clsx from "clsx";
 
-const Chat = () => {
-  const { hasHydrated, userName, setUserId } = useUserStore((state) => state);
-
-  const [isConnected, setIsConnected] = React.useState(false);
-  const [transport, setTransport] = React.useState("N/A");
-  const [roomId, setRoomId] = React.useState<string>("");
+interface IChatProps {
+  roomId: string;
+}
+const Chat = (props: IChatProps) => {
+  const { userName } = useUserStore((state) => state);
   const [inputValue, setInputValue] = React.useState<string>("");
   const [messages, setMessages] = React.useState<IChatMessageItem[]>([]);
-
-  const onConnect = () => {
-    // console.log("onConnect socket.id", socket.id, userName);
-    setIsConnected(true);
-    setTransport(socket.io.engine.transport.name);
-
-    socket.io.engine.on("upgrade", (transport) => {
-      setTransport(transport.name);
-    });
-    socket.emit("joinRandomRoom", userName);
-  };
-
-  const onConnectError = () => {
-    alert("접속에 실패하였습니다.");
-    redirect("/");
-  };
 
   const onRoomJoined = (
     userId: string,
@@ -38,14 +20,11 @@ const Chat = () => {
     roomSize: number,
     gameSize: number
   ) => {
-    // console.log("onRoomJoined()");
-    setUserId(userId);
-    setRoomId(roomId);
     setMessages((prev) => [
       ...prev,
       {
         type: "system",
-        message: `${roomId}번 방에 입장했습니다. 현재 인원: ${roomSize}/2.${
+        message: `${roomId}번 방에 입장했습니다. 현재 인원: ${roomSize}/${gameSize}.${
           roomSize === gameSize ? " 준비완료 버튼을 눌러주세요." : ""
         }`,
         time: new Date(),
@@ -62,7 +41,7 @@ const Chat = () => {
       ...prev,
       {
         type: "system",
-        message: `${userName}님이 입장하셨습니다. 현재 인원: ${roomSize}/2.${
+        message: `${userName}님이 입장하셨습니다. 현재 인원: ${roomSize}/${gameSize}.${
           roomSize === gameSize ? " 준비완료 버튼을 눌러주세요." : ""
         }`,
         time: new Date(),
@@ -73,7 +52,7 @@ const Chat = () => {
   const onChatSend = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (inputValue.length > 0) {
-      socket.emit("chat message", inputValue, userName);
+      socket.emit("chat message", props.roomId, inputValue, userName);
       setInputValue("");
       chatInputRef?.current?.focus();
     }
@@ -115,46 +94,32 @@ const Chat = () => {
     });
   };
 
-  const onOtherUserLeave = (otherUserName: string, roomSize: number) => {
-    // console.log("onOtherUserLeave otherUserName", otherUserName);
+  const onOtherUserLeave = (
+    otherUserName: string,
+    roomSize: number,
+    gameSize: number
+  ) => {
     setMessages((prev) => [
       ...prev,
       {
         type: "system",
-        message: `${otherUserName}님이 퇴장하셨습니다. 현재 인원: ${roomSize}/2.`,
+        message: `${otherUserName}님이 퇴장하셨습니다. 현재 인원: ${roomSize}/${gameSize}.`,
         time: new Date(),
       },
     ]);
   };
 
-  const onDisconnect = () => {
-    setIsConnected(false);
-    setTransport("N/A");
-  };
-
   React.useEffect(() => {
-    if (socket.connected && hasHydrated && userName !== null) {
-      onConnect();
-    }
-  }, [hasHydrated]);
-
-  React.useEffect(() => {
-    socket.on("connect", onConnect);
-    socket.on("connect_error", onConnectError);
     socket.on("roomJoined", onRoomJoined);
     socket.on("welcome", onOtherUserJoin);
     socket.on("chat message", onChatMessage);
     socket.on("leave", onOtherUserLeave);
-    socket.on("disconnect", onDisconnect);
 
     return () => {
-      socket.off("connect", onConnect);
-      socket.off("connect_error", onConnectError);
       socket.off("roomJoined", onRoomJoined);
       socket.off("welcome", onOtherUserJoin);
       socket.off("chat message", onChatMessage);
       socket.off("leave", onOtherUserLeave);
-      socket.off("disconnect", onDisconnect);
     };
   }, []);
 
@@ -179,7 +144,7 @@ const Chat = () => {
         {messages.map((m, _m) => {
           return (
             <li
-              key={`${roomId}_${m.type}_${m.message}_${_m}`}
+              key={`${props.roomId}_${m.type}_${m.message}_${_m}`}
               className={clsx(
                 `w-full ${m.type === "other" && "flex justify-end"}`
               )}
@@ -200,7 +165,7 @@ const Chat = () => {
         />
         <button
           type="submit"
-          className="px-[10px] text-[#ccc] bg-slate-600 hover:bg-slate-800 rounded-[4px]"
+          className="px-[10px] text-[#ccc] text-[13px] bg-slate-600 hover:bg-slate-800 rounded-[4px]"
         >
           전송
         </button>
