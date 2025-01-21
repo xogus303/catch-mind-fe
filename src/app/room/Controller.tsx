@@ -1,3 +1,4 @@
+import Loader from "@/components/Loader";
 import { useUserStore } from "@/providers/user-store-provider";
 import { socket } from "@/socket";
 import clsx from "clsx";
@@ -13,6 +14,7 @@ const Controller = (props: IControllerProps) => {
   const [enableReady, setEnableReady] = React.useState<boolean>(false);
   const [ready, setReady] = React.useState<boolean>(false);
   const [masterName, setMasterName] = React.useState<string | null>(null);
+  const [isLoading, setIsLoading] = React.useState<boolean>(false);
   const [started, setStarted] = React.useState<boolean>(false);
 
   const onRoomJoined = (
@@ -61,58 +63,67 @@ const Controller = (props: IControllerProps) => {
     setMasterName(isMaster);
   };
 
-  const onGameStart = () => {
-    setStarted(true);
-    alert("game start !!");
+  const onLoadingStart = () => {
+    console.log("onLoadingStart()");
+    setIsLoading(true);
+    // setStarted(true);
   };
 
   React.useEffect(() => {
     socket.on("roomJoined", onRoomJoined);
     socket.on("welcome", onOtherUserJoin);
     socket.on("update master user", updateMasterUser);
-    socket.on("game start", onGameStart);
+    socket.on("loading start", onLoadingStart);
     socket.on("leave", onOtherUserLeave);
 
     return () => {
       socket.off("roomJoined", onRoomJoined);
       socket.off("welcome", onOtherUserJoin);
       socket.on("update master user", updateMasterUser);
-      socket.off("game start", onGameStart);
+      socket.off("loading start", onLoadingStart);
       socket.off("leave", onOtherUserLeave);
     };
   }, []);
 
   return (
     <div className="flex flex-col p-[10px] w-[200px] justify-end ">
-      {!started ? (
-        <div className="flex  flex-col gap-[10px]">
-          <button
-            type={"button"}
-            disabled={!enableReady || ready}
-            onClick={onSetReady}
-            className={clsx(
-              `py-[10px] px-[20px] rounded-full ${
-                !enableReady
-                  ? "text-[#ccc] bg-neutral-700"
-                  : !ready
-                  ? "text-[white] bg-red-400 hover:bg-red-600"
-                  : ""
-              }`
-            )}
-          >
-            {ready ? "준비완료" : "준비하기"}
-          </button>
+      {isLoading ? (
+        <div className="flex flex-1 items-center justify-center">
+          <Loader />
         </div>
       ) : (
-        <div>
-          {userType === "master" ? (
-            <div>문제???</div>
+        <>
+          {!started ? (
+            <div className="flex  flex-col gap-[10px]">
+              <button
+                type={"button"}
+                disabled={!enableReady || ready}
+                onClick={onSetReady}
+                className={clsx(
+                  `py-[10px] px-[20px] rounded-full ${
+                    !enableReady
+                      ? "text-[#ccc] bg-neutral-700"
+                      : !ready
+                      ? "text-[white] bg-red-400 hover:bg-red-600"
+                      : ""
+                  }`
+                )}
+              >
+                {ready ? "준비완료" : "준비하기"}
+              </button>
+            </div>
           ) : (
             <div>
-              <input className="outline-none" />
+              {userType === "master" ? (
+                <div>문제???</div>
+              ) : (
+                <div>
+                  <input className="outline-none" />
+                </div>
+              )}
             </div>
           )}
-        </div>
+        </>
       )}
     </div>
   );

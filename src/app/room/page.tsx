@@ -8,23 +8,21 @@ import Controller from "./Controller";
 import { socket } from "@/socket";
 
 export default function Room() {
-  const { hasHydrated, userName, userType, setUserId } = useUserStore(
-    (state) => state
-  );
+  const { hasHydrated, userName, userType, setUserId, setUserName } =
+    useUserStore((state) => state);
 
   const [isConnected, setIsConnected] = React.useState(false);
   const [transport, setTransport] = React.useState("N/A");
   const [roomId, setRoomId] = React.useState<string>("");
 
   const onConnect = () => {
-    // console.log("onConnect socket.id", socket.id, userName);
+    console.log("onConnect socket.id", socket.id, userName, userType);
     setIsConnected(true);
     setTransport(socket.io.engine.transport.name);
 
     socket.io.engine.on("upgrade", (transport) => {
       setTransport(transport.name);
     });
-    console.log("userType", userType);
     socket.emit("joinRandomRoom", userName, userType);
   };
 
@@ -51,31 +49,27 @@ export default function Room() {
   };
 
   React.useEffect(() => {
-    socket.on("connect", onConnect);
-    socket.on("connect_error", onConnectError);
-    socket.on("roomJoined", onRoomJoined);
-    socket.on("disconnect", onDisconnect);
-
-    return () => {
-      socket.off("connect", onConnect);
-      socket.off("connect_error", onConnectError);
-      socket.off("roomJoined", onRoomJoined);
-      socket.off("disconnect", onDisconnect);
-    };
-  }, []);
-
-  React.useEffect(() => {
-    if (socket.connected && hasHydrated && userName !== null) {
-      onConnect();
-    }
-  }, [hasHydrated]);
-
-  if (!hasHydrated) {
-    return <p>Loading...</p>;
-  } else {
     if (userName === "") {
       redirect("/");
     }
+    if (hasHydrated && userName && userType) {
+      console.log("in!!");
+      socket.on("connect", onConnect);
+      socket.on("connect_error", onConnectError);
+      socket.on("roomJoined", onRoomJoined);
+      socket.on("disconnect", onDisconnect);
+
+      return () => {
+        socket.off("connect", onConnect);
+        socket.off("connect_error", onConnectError);
+        socket.off("roomJoined", onRoomJoined);
+        socket.off("disconnect", onDisconnect);
+      };
+    }
+  }, [hasHydrated, userName, userType]);
+
+  if (!hasHydrated) {
+    return <p>Loading...</p>;
   }
 
   return (

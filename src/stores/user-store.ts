@@ -1,6 +1,6 @@
 import { TUserType } from "@/types";
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
+import { createJSONStorage, persist } from "zustand/middleware";
 
 export type UserState = {
   userId: string | null;
@@ -42,6 +42,7 @@ export const createUserStore = (initState: UserState = defaultInitState) => {
       }),
       {
         name: "user-storage",
+        storage: createJSONStorage(() => sessionStorage),
         onRehydrateStorage: () => (state) => {
           state?.setHasHydrated();
         },
