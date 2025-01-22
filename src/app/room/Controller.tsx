@@ -16,6 +16,7 @@ const Controller = (props: IControllerProps) => {
   const [masterName, setMasterName] = React.useState<string | null>(null);
   const [isLoading, setIsLoading] = React.useState<boolean>(false);
   const [started, setStarted] = React.useState<boolean>(false);
+  const [word, setWord] = React.useState<string | null>(null);
 
   const onRoomJoined = (
     userId: string,
@@ -69,11 +70,21 @@ const Controller = (props: IControllerProps) => {
     // setStarted(true);
   };
 
+  const onGameStart = (word: string) => {
+    console.log("onGameStart word", word);
+    setIsLoading(false);
+    setStarted(true);
+    if (userType === "master") {
+      setWord(word);
+    }
+  };
+
   React.useEffect(() => {
     socket.on("roomJoined", onRoomJoined);
     socket.on("welcome", onOtherUserJoin);
     socket.on("update master user", updateMasterUser);
     socket.on("loading start", onLoadingStart);
+    socket.on("game start", onGameStart);
     socket.on("leave", onOtherUserLeave);
 
     return () => {
@@ -81,6 +92,7 @@ const Controller = (props: IControllerProps) => {
       socket.off("welcome", onOtherUserJoin);
       socket.on("update master user", updateMasterUser);
       socket.off("loading start", onLoadingStart);
+      socket.off("game start", onGameStart);
       socket.off("leave", onOtherUserLeave);
     };
   }, []);
@@ -115,7 +127,7 @@ const Controller = (props: IControllerProps) => {
           ) : (
             <div>
               {userType === "master" ? (
-                <div>문제???</div>
+                <div>{word}</div>
               ) : (
                 <div>
                   <input className="outline-none" />
