@@ -17,6 +17,9 @@ const Controller = (props: IControllerProps) => {
   const [isLoading, setIsLoading] = React.useState<boolean>(false);
   const [started, setStarted] = React.useState<boolean>(false);
   const [word, setWord] = React.useState<string | null>(null);
+  const [answerInputValue, setAnswerInputValue] = React.useState<string>("");
+
+  const answerInputRef = React.useRef<HTMLInputElement>(null);
 
   const onRoomJoined = (
     userId: string,
@@ -76,7 +79,17 @@ const Controller = (props: IControllerProps) => {
     setStarted(true);
     if (userType === "master") {
       setWord(word);
+    } else {
+      setTimeout(() => {
+        answerInputRef?.current?.focus();
+      }, 300);
     }
+  };
+
+  const onSubmitAnswer = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    console.log("answerInputValue", answerInputValue);
+    setAnswerInputValue("");
   };
 
   React.useEffect(() => {
@@ -125,15 +138,40 @@ const Controller = (props: IControllerProps) => {
               </button>
             </div>
           ) : (
-            <div>
+            <>
               {userType === "master" ? (
-                <div>{word}</div>
+                <div className="flex flex-1 items-center justify-center">
+                  <div className="flex flex-col items-center gap-[10px]">
+                    <span className="text-[14px] text-slate-500">
+                      제출 단어
+                    </span>
+                    <strong className="text-[28px]">{word}</strong>
+                  </div>
+                </div>
               ) : (
-                <div>
-                  <input className="outline-none" />
+                <div className="flex flex-1  ">
+                  <form
+                    onSubmit={onSubmitAnswer}
+                    className="flex flex-1 flex-col gap-[10px]"
+                  >
+                    <input
+                      ref={answerInputRef}
+                      placeholder="단어 입력"
+                      value={answerInputValue}
+                      onChange={(e) => setAnswerInputValue(e.target.value)}
+                      maxLength={8}
+                      className="flex flex-1 text-center  outline-none"
+                    />
+                    <button
+                      type="submit"
+                      className="h-[50px] text-[14px] font-bold text-white tracking-widest border-[1px] rounded-[4px] bg-blue-400 hover:bg-blue-500"
+                    >
+                      제출하기
+                    </button>
+                  </form>
                 </div>
               )}
-            </div>
+            </>
           )}
         </>
       )}
